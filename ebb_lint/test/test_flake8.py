@@ -1124,6 +1124,32 @@ def test_f():
 '''.format(docstring) for docstring in test_docstrings)
 
 
+# Stock lib2to3 chokes on these, so make sure it's been patched.
+all_sources.extend([
+    py3skip('''
+
+class nonlocal(object):
+    pass
+
+    '''),
+
+    py2skip('''
+
+class exec(object):
+    pass
+
+    '''),
+
+    '''
+
+x = f(
+    _ for _ in range(2),
+)
+
+    ''',
+])
+
+
 dunder_init_sources = [
     '''
 

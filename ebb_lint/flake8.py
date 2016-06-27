@@ -84,14 +84,18 @@ def detect_future_features(s):  # pragma: nocover
 
 if six.PY3:  # ✘py27
     def grammar_for_future_features(future_features):
-        return pygram.python_grammar_no_print_statement
+        ret = pygram.python_grammar_no_print_statement.copy()
+        del ret.keywords['exec']
+        return ret
 
 else:  # ✘py33 ✘py34 ✘py35
     def grammar_for_future_features(future_features):
         if 'print_function' in future_features:
-            return pygram.python_grammar_no_print_statement
+            ret = pygram.python_grammar_no_print_statement.copy()
         else:
-            return pygram.python_grammar
+            ret = pygram.python_grammar.copy()
+        del ret.keywords['nonlocal']
+        return ret
 
 
 def find_comments(s, base_byte=0):
