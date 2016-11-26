@@ -4,6 +4,9 @@ source = ebb_lint
 omit =
     */test/*
 
+[html]
+directory = htmlcov-${TOX_ENVNAME}
+
 [report]
 exclude_lines =
     ✘${TOX_ENVNAME}
