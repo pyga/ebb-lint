@@ -55,7 +55,6 @@ def scan_ancestry_for(node, attr, default):
 @register_checker("""
 
 ( simple_stmt< any* p='print' any* >
-| print_stmt< p='print' any* >
 | power< p='print' trailer< '(' any* ')' > any* >
 )
 
@@ -148,7 +147,6 @@ def check_except_pass(p):
 | raise_stmt< stmt='raise' atom< lparen='(' any* ')' > >
 | assert_stmt< stmt='assert' atom< lparen='(' any* ')' > >
 | yield_expr< stmt='yield' atom< lparen='(' any* ')' > >
-| print_stmt< stmt='print' atom< lparen='(' any* ')' > >
 )
 
 """)
@@ -162,7 +160,7 @@ def check_useless_parens(stmt, lparen):
 
 yield_expr< stmt='yield' yield_arg< 'from' atom< lparen='(' any* ')' > > >
 
-""", python_minimum_version=(3, 4, 1))
+""", python_minimum_version=(3, 4))
 def check_useless_parens_on_yield_from(stmt, lparen):  # ✘py27 ✘py33
     if lparen.prefix:
         return
@@ -187,11 +185,22 @@ _expr_type = {
 
 @register_checker("""
 
-simple_stmt< ( atom< start='[' listmaker< any+ comp_for< any+ > > ']' >
-             | atom< start='{' dictsetmaker< any+ comp_for< any+ > > '}' >
-             ) any* >
+simple_stmt< atom< start='{' dictorsetmaker< any+ comp_for< any+ > > '}' >
+             any* >
 
 """)
+@register_checker("""
+
+simple_stmt< atom< start='[' listmaker< any+ comp_for< any+ > > ']' >
+             any* >
+
+""", python_disabled_version=(3, 0))
+@register_checker("""
+
+simple_stmt< atom< start='[' testlist_comp< any+ comp_for< any+ > > ']' >
+             any* >
+
+""", python_minimum_version=(3, 0))
 def check_no_side_effects_literal(start):
     yield start, Errors.no_side_effects, {'thing': _expr_type[start.value]}
 
