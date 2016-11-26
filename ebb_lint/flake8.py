@@ -11,7 +11,7 @@ from awpa import (
     patcomp,
     read_file_using_source_encoding)
 
-import pep8
+import pycodestyle
 import six
 import venusian
 from intervaltree import Interval, IntervalTree
@@ -21,9 +21,9 @@ from ebb_lint.errors import Errors
 from ebb_lint import checkers
 
 
-_pep8_noqa = pep8.noqa
+_pycodestyle_noqa = pycodestyle.noqa
 # This is a blight. Disable it unconditionally.
-pep8.noqa = lambda ign: False
+pycodestyle.noqa = lambda ign: False
 
 
 def tokenize_source_string(grammar, s, base_byte=0):
@@ -168,10 +168,10 @@ class EbbLint(object):
                 # On python 2, reading from stdin gives you bytes, which must
                 # be decoded.
                 self._source = decode_bytes_using_source_encoding(
-                    pep8.stdin_get_value())
+                    pycodestyle.stdin_get_value())
             else:  # ✘py27
                 # On python 3, reading from stdin gives you text.
-                self._source = pep8.stdin_get_value()
+                self._source = pycodestyle.stdin_get_value()
         return self._source
 
     @property
@@ -254,7 +254,7 @@ class EbbLint(object):
             find_comments(self._grammar, node.prefix, byte - len(node.prefix)))
         for c, i in comments:
             self._intervals['comments'].add(i)
-            m = _pep8_noqa(c)
+            m = _pycodestyle_noqa(c)
             if m is not None:
                 yield self._message_for_pos(
                     self.lines.position_of_byte(i.begin + m.start()),

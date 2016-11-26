@@ -25,7 +25,7 @@ extras_require['all'] = list({
 
 install_requires = [
     'awpa >= 0.16.1.0b2',
-    'flake8 >= 2.5.1, < 2.6',
+    'flake8 >= 2.6.0, < 3',
     'intervaltree',
     'six',
     'venusian',
