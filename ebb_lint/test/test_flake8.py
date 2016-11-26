@@ -407,6 +407,12 @@ $L204$'a' 'b'  $L303$# noqa
 
     ''',
 
+    '''
+repr(
+    foo for foo in range(3),
+)
+    ''',
+
     # Oh boy these following two cases need explanation. The prefix of the
     # 'spam' node in both of these cases ends with a literal \ followed by a
     # newline, which cannot be tokenized by generate_tokens because it expects
