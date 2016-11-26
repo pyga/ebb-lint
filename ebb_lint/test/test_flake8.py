@@ -18,6 +18,8 @@ py2skip = pytest.mark.skipif(not six.PY3, reason='not runnable on python 2')
 py3skip = pytest.mark.skipif(six.PY3, reason='not runnable on python 3')
 pre_py34skip = pytest.mark.skipif(
     sys.version_info < (3, 4), reason='not runnable before python 3.4')
+pre_py35skip = pytest.mark.skipif(
+    sys.version_info < (3, 5), reason='not runnable before python 3.5')
 
 
 _code_pattern = re.compile(r"""
@@ -412,6 +414,13 @@ repr(
     foo for foo in range(3),
 )
     ''',
+
+    pre_py35skip('''
+def foo(one, two):
+    pass
+
+foo(**{'one': 1}, two=2)
+    '''),
 
     # Oh boy these following two cases need explanation. The prefix of the
     # 'spam' node in both of these cases ends with a literal \ followed by a
