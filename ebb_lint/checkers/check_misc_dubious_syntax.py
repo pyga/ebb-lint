@@ -4,8 +4,6 @@ from __future__ import unicode_literals
 
 import os
 
-from lib2to3.pgen2 import token
-
 from ebb_lint.checkers.registration import register_checker
 from ebb_lint.errors import Errors
 
@@ -74,15 +72,16 @@ def check_for_print(p):
 )
 
     """,
-    pass_filename=True, pass_future_features=True,
+    pass_filename=True, pass_future_features=True, pass_grammar=True,
     python_disabled_version=(3, 0))
 def check_for_implicit_relative_imports(
-        filename, future_features, mod):  # ✘py33 ✘py34 ✘py35
+        filename, future_features, grammar, mod):  # ✘py33 ✘py34 ✘py35
     if 'absolute_import' in future_features:
         return
     [mod] = mod
     dirname = os.path.dirname(filename)
-    segments = [l.value for l in mod.pre_order() if l.type == token.NAME]
+    segments = [
+        l.value for l in mod.pre_order() if l.type == grammar.token.NAME]
     candidates = []
     candidates.extend(
         os.path.join(dirname,
@@ -253,11 +252,12 @@ def parenthesized_group_leaves(container):
 
 atom=atom< first_string=STRING STRING+ >
 
-""")
-def check_for_unintentional_implicit_concatenation(atom, first_string):
+""", pass_grammar=True)
+def check_for_unintentional_implicit_concatenation(
+        grammar, atom, first_string):
     try:
         for child in parenthesized_group_leaves(atom.parent):
-            if child.type != token.STRING:  # pragma: nocover
+            if child.type != grammar.token.STRING:  # pragma: nocover
                 break
         else:
             # all leaves were string literals

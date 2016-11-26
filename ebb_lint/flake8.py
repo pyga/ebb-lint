@@ -233,6 +233,8 @@ class EbbLint(object):
                     results['filename'] = self.filename
                 if extra.get('pass_future_features', False):
                     results['future_features'] = self.future_features
+                if extra.get('pass_grammar', False):
+                    results['grammar'] = self._grammar
                 for error_node, error, kw in checker(**results):
                     yield self._message_for_node(error_node, error, **kw)
 
