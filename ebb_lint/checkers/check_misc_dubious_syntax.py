@@ -22,7 +22,7 @@ def check_for_pdb(pdb):
 
 @register_checker("""
 
-power< any+ trailer< '.' func='set_trace' > trailer< '(' ')' > >
+any< any+ trailer< '.' func='set_trace' > trailer< '(' ')' > >
 
 """)
 def check_for_set_trace(func):
@@ -53,10 +53,15 @@ def scan_ancestry_for(node, attr, default):
 @register_checker("""
 
 ( simple_stmt< any* p='print' any* >
-| power< p='print' trailer< '(' any* ')' > any* >
+| any< p='print' trailer< '(' any* ')' > any* >
 )
 
 """)
+@register_checker("""
+
+print_stmt< p='print' any* >
+
+""", python_disabled_version=(3, 0))
 def check_for_print(p):
     if scan_ancestry_for(p, 'print_lint_ok', False):
         return
@@ -149,6 +154,11 @@ def check_except_pass(p):
 )
 
 """)
+@register_checker("""
+
+print_stmt< stmt='print' atom< lparen='(' any* ')' > >
+
+""", python_disabled_version=(3, 0))
 def check_useless_parens(stmt, lparen):
     if lparen.prefix:
         return
@@ -168,7 +178,7 @@ def check_useless_parens_on_yield_from(stmt, lparen):  # ✘py27 ✘py33
 
 @register_checker("""
 
-simple_stmt < power< f=('map' | 'filter') trailer< '(' any* ')' > any* > any* >
+simple_stmt < any< f=('map' | 'filter') trailer< '(' any* ')' > any* > any* >
 
 """)
 def check_no_side_effects_function(f):
@@ -184,13 +194,13 @@ _expr_type = {
 
 @register_checker("""
 
-simple_stmt< atom< start='{' dictorsetmaker< any+ comp_for< any+ > > '}' >
+simple_stmt< atom< start='{' dictorsetmaker< any* comp_for< any* > any* > '}' >
              any* >
 
 """)
 @register_checker("""
 
-simple_stmt< atom< start='[' listmaker< any+ comp_for< any+ > > ']' >
+simple_stmt< atom< start='[' listmaker< any* list_for< any* > any* > ']' >
              any* >
 
 """, python_disabled_version=(3, 0))
@@ -206,7 +216,7 @@ def check_no_side_effects_literal(start):
 
 @register_checker("""
 
-power< f=('map' | 'filter') trailer< '(' arglist<
+any< f=('map' | 'filter') trailer< '(' arglist<
     lambdef ',' any*
 > any* ')' > any* >
 

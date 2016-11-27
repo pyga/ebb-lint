@@ -162,10 +162,10 @@ def docstring_errors(purpose, docstring):
 
 @register_checker(r"""
 
-( classdef< which='class' name=NAME any*
-            suite< '\n' any simple_stmt< docstring=STRING any > any* > >
-| funcdef< which='def' name=NAME any*
-           suite< '\n' any simple_stmt< docstring=STRING any > any* > >
+( classdef< which='class' name=any any*
+           suite< any any simple_stmt< docstring=STRING any > any* > >
+| funcdef< which='def' name=any any*
+           suite< any any simple_stmt< docstring=STRING any > any* > >
 )
 
 """)

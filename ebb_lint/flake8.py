@@ -220,14 +220,19 @@ class EbbLint(object):
             yield error
 
     def _check_tree(self, tree):
+        matches = self.matcher.run(tree.pre_order())
+        node_matches = {}
+        for checker_idx, nodes in six.iteritems(matches):
+            for node in nodes:
+                node_matches.setdefault(id(node), set()).add(checker_idx)
+
         for node in tree.pre_order():
-            for error in self._scan_node_for_ranges(node):
+             for error in self._scan_node_for_ranges(node):
                 yield error
 
-        matches = self.matcher.run(tree.pre_order())
-        for checker_idx, nodes in six.iteritems(matches):
-            pattern, _, checker, extra = self.collected_checkers[checker_idx]
-            for node in nodes:
+            for checker_idx in node_matches.get(id(node), ()):
+                pattern, _, checker, extra = (
+                    self.collected_checkers[checker_idx])
                 results = {}
                 if not pattern.match(node, results):
                     continue
