@@ -22,7 +22,7 @@ def check_for_pdb(pdb):
 
 @register_checker("""
 
-any< any+ trailer< '.' func='set_trace' > trailer< '(' ')' > >
+atom_expr_or_power< any+ trailer< '.' func='set_trace' > trailer< '(' ')' > >
 
 """)
 def check_for_set_trace(func):
@@ -53,7 +53,7 @@ def scan_ancestry_for(node, attr, default):
 @register_checker("""
 
 ( simple_stmt< any* p='print' any* >
-| any< p='print' trailer< '(' any* ')' > any* >
+| atom_expr_or_power< p='print' trailer< '(' any* ')' > any* >
 )
 
 """)
@@ -178,7 +178,9 @@ def check_useless_parens_on_yield_from(stmt, lparen):  # ✘py27 ✘py33
 
 @register_checker("""
 
-simple_stmt < any< f=('map' | 'filter') trailer< '(' any* ')' > any* > any* >
+simple_stmt < atom_expr_or_power<
+    f=('map' | 'filter') trailer< '(' any* ')' > any*
+> any* >
 
 """)
 def check_no_side_effects_function(f):
@@ -216,7 +218,7 @@ def check_no_side_effects_literal(start):
 
 @register_checker("""
 
-any< f=('map' | 'filter') trailer< '(' arglist<
+atom_expr_or_power< f=('map' | 'filter') trailer< '(' arglist<
     lambdef ',' any*
 > any* ')' > any* >
 
@@ -249,8 +251,8 @@ def parenthesized_group_leaves(container):
         raise NoParentheizedGroup()
     first_child = container.children[0]
     last_child = container.children[-1]
-    if not ((not first_child.children and first_child.value == '(')
-            and (not last_child.children and last_child.value == ')')):
+    if not ((not first_child.children and first_child.value == '(') and
+            (not last_child.children and last_child.value == ')')):
         raise NoParentheizedGroup()
     for child in container.children[1:-1]:
         for subchild in child.pre_order():
