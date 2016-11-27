@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import bisect
 import io
 import sys
+from awpa.btm_matcher import BottomMatcher
 from awpa import (
     decode_bytes_using_source_encoding,
     load_grammar,
@@ -145,7 +146,7 @@ class EbbLint(object):
             return
 
         collected_checkers = []
-        _, _, pysyms = current_python_grammar()
+        _, grammar, pysyms = current_python_grammar()
 
         def register_checker(pattern, checker, extra):
             if ('python_minimum_version' in extra
@@ -154,12 +155,17 @@ class EbbLint(object):
             if ('python_disabled_version' in extra
                     and sys.version_info > extra['python_disabled_version']):
                 return
-            pattern = patcomp.compile_pattern(pysyms, pattern)
-            collected_checkers.append((pattern, checker, extra))
+            pattern, tree = patcomp.compile_pattern(
+                pysyms, pattern, with_tree=True)
+            collected_checkers.append((pattern, tree, checker, extra))
 
         scanner = venusian.Scanner(register=register_checker)
         scanner.scan(checkers)
+        matcher = BottomMatcher(grammar)
+        for e, (_, tree, _, _) in enumerate(collected_checkers):
+            matcher.add_pattern_by_key(tree, e)
         cls.collected_checkers = collected_checkers
+        cls.matcher = matcher
 
     @property
     def source(self):
@@ -218,7 +224,10 @@ class EbbLint(object):
             for error in self._scan_node_for_ranges(node):
                 yield error
 
-            for pattern, checker, extra in self.collected_checkers:
+        matches = self.matcher.run(tree.pre_order())
+        for checker_idx, nodes in six.iteritems(matches):
+            pattern, _, checker, extra = self.collected_checkers[checker_idx]
+            for node in nodes:
                 results = {}
                 if not pattern.match(node, results):
                     continue

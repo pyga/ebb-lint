@@ -163,9 +163,9 @@ def docstring_errors(purpose, docstring):
 @register_checker(r"""
 
 ( classdef< which='class' name=NAME any*
-            suite< '\n' TOKEN simple_stmt< docstring=STRING any > any* > >
+            suite< '\n' any simple_stmt< docstring=STRING any > any* > >
 | funcdef< which='def' name=NAME any*
-           suite< '\n' TOKEN simple_stmt< docstring=STRING any > any* > >
+           suite< '\n' any simple_stmt< docstring=STRING any > any* > >
 )
 
 """)
