@@ -1196,8 +1196,9 @@ all_filename_sources = [
 
 def assert_ebb_lint(source_text, source_path, error_locations):
     lint = EbbLint(ast.parse(source_text), source_path)
-    return [
+    actual = [
         (line, col, message[:4]) for line, col, message, _ in lint.run()]
+    assert actual == error_locations
 
 
 @pytest.fixture
