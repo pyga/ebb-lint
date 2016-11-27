@@ -145,6 +145,7 @@ class EbbLint(object):
             return
 
         collected_checkers = []
+        _, _, pysyms = current_python_grammar()
 
         def register_checker(pattern, checker, extra):
             if ('python_minimum_version' in extra
@@ -153,6 +154,7 @@ class EbbLint(object):
             if ('python_disabled_version' in extra
                     and sys.version_info > extra['python_disabled_version']):
                 return
+            pattern = patcomp.compile_pattern(pysyms, pattern)
             collected_checkers.append((pattern, checker, extra))
 
         scanner = venusian.Scanner(register=register_checker)
@@ -198,9 +200,6 @@ class EbbLint(object):
 
     def run(self):
         _, self._grammar, pysyms = current_python_grammar()
-        self.collected_checkers = [
-            (patcomp.compile_pattern(pysyms, pattern), checker, extra)
-            for pattern, checker, extra in self.collected_checkers]
         self.future_features = self._grammar.detect_future_features(self.source)
         fix_grammar_for_future_features(self._grammar, self.future_features)
         tree, trailing_newline = self._grammar.parse_source(self.source)
