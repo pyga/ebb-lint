@@ -208,7 +208,7 @@ simple_stmt< atom< start='[' listmaker< any* list_for< any* > any* > ']' >
 """, python_disabled_version=(3, 0))
 @register_checker("""
 
-simple_stmt< atom< start='[' testlist_comp< any+ comp_for< any+ > > ']' >
+simple_stmt< atom< start='[' testlist_comp any* ']' >
              any* >
 
 """, python_minimum_version=(3, 0))

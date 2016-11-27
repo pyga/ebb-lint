@@ -758,6 +758,18 @@ $L210${delim[0]}{elem[0]} for x in y{delim[1]}
 
         '''
 
+$L210${delim[0]}{elem[0]} for x in y for z in x{delim[1]}
+
+        ''',
+
+        '''
+
+$L210${delim[0]}{elem[0]} for x in y for z in x if z{delim[1]}
+
+        ''',
+
+        '''
+
 a = {delim[0]}{elem[0]} for x in y{delim[1]}
 
         ''',

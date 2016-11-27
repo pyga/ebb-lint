@@ -146,7 +146,7 @@ class EbbLint(object):
             return
 
         collected_checkers = []
-        _, grammar, pysyms = current_python_grammar()
+        _, grammar, _ = current_python_grammar()
 
         def register_checker(pattern, checker, extra):
             if ('python_minimum_version' in extra
@@ -156,7 +156,7 @@ class EbbLint(object):
                     and sys.version_info > extra['python_disabled_version']):
                 return
             pattern, tree = patcomp.compile_pattern(
-                pysyms, pattern, with_tree=True)
+                grammar, pattern, with_tree=True)
             collected_checkers.append((pattern, tree, checker, extra))
 
         scanner = venusian.Scanner(register=register_checker)
@@ -227,7 +227,7 @@ class EbbLint(object):
                 node_matches.setdefault(id(node), set()).add(checker_idx)
 
         for node in tree.pre_order():
-             for error in self._scan_node_for_ranges(node):
+            for error in self._scan_node_for_ranges(node):
                 yield error
 
             for checker_idx in node_matches.get(id(node), ()):
