@@ -18,6 +18,8 @@ py2skip = pytest.mark.skipif(not six.PY3, reason='not runnable on python 2')
 py3skip = pytest.mark.skipif(six.PY3, reason='not runnable on python 3')
 pre_py34skip = pytest.mark.skipif(
     sys.version_info < (3, 4), reason='not runnable before python 3.4')
+pre_py35skip = pytest.mark.skipif(
+    sys.version_info < (3, 5), reason='not runnable before python 3.5')
 
 
 _code_pattern = re.compile(r"""
@@ -407,6 +409,19 @@ $L204$'a' 'b'  $L303$# noqa
 
     ''',
 
+    '''
+repr(
+    foo for foo in range(3),
+)
+    ''',
+
+    pre_py35skip('''
+def foo(one, two):
+    pass
+
+foo(**{'one': 1}, two=2)
+    '''),
+
     # Oh boy these following two cases need explanation. The prefix of the
     # 'spam' node in both of these cases ends with a literal \ followed by a
     # newline, which cannot be tokenized by generate_tokens because it expects
@@ -738,6 +753,18 @@ spam = {delim[0]}
         '''
 
 $L210${delim[0]}{elem[0]} for x in y{delim[1]}
+
+        ''',
+
+        '''
+
+$L210${delim[0]}{elem[0]} for x in y for z in x{delim[1]}
+
+        ''',
+
+        '''
+
+$L210${delim[0]}{elem[0]} for x in y for z in x if z{delim[1]}
 
         ''',
 
@@ -1124,6 +1151,32 @@ def test_f():
 '''.format(docstring) for docstring in test_docstrings)
 
 
+# Stock lib2to3 chokes on these, so make sure it's been patched.
+all_sources.extend([
+    py3skip('''
+
+class nonlocal(object):
+    pass
+
+    '''),
+
+    py2skip('''
+
+class exec(object):
+    pass
+
+    '''),
+
+    '''
+
+x = f(
+    _ for _ in range(2),
+)
+
+    ''',
+])
+
+
 dunder_init_sources = [
     '''
 
@@ -1155,8 +1208,9 @@ all_filename_sources = [
 
 def assert_ebb_lint(source_text, source_path, error_locations):
     lint = EbbLint(ast.parse(source_text), source_path)
-    return [
-        (line, col, message[:4]) for line, col, message, _ in lint.run()]
+    actual = {
+        (line, col, message[:4]) for line, col, message, _ in lint.run()}
+    assert actual == set(error_locations)
 
 
 @pytest.fixture

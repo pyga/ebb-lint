@@ -5,8 +5,12 @@ from __future__ import unicode_literals
 import bisect
 import io
 import sys
-from lib2to3.pgen2 import driver, token, tokenize
-from lib2to3 import patcomp, pygram, pytree
+from awpa.btm_matcher import BottomMatcher
+from awpa import (
+    decode_bytes_using_source_encoding,
+    load_grammar,
+    patcomp,
+    read_file_using_source_encoding)
 
 import pycodestyle
 import six
@@ -23,101 +27,30 @@ _pycodestyle_noqa = pycodestyle.noqa
 pycodestyle.noqa = lambda ign: False
 
 
-def tokenize_source_string(s, base_byte=0):
-    fobj = io.StringIO(six.text_type(s).rstrip(' \t\r\n\\'))
-    lines = Lines(fobj)
-    fobj.seek(0)
-    for typ, tok, spos, epos, _ in tokenize.generate_tokens(fobj.readline):
+def tokenize_source_string(grammar, s, base_byte=0):
+    lines = Lines(io.StringIO(s))
+    for typ, tok, spos, epos, _ in grammar.generate_tokens(s):
         yield typ, tok, Interval(
             lines.byte_of_pos(*spos) + base_byte,
             lines.byte_of_pos(*epos) + base_byte)
 
 
-# detect_future_features isn't fully covered, but I don't really care, because
-# I don't want to rewrite it. Maybe if it becomes more relevant I'll pull it
-# out of this suite and actually properly unit test it, but right now I feel
-# like it's mostly just working around a lib2to3 deficiency so I don't care
-# enough to do anything else. It's stolen from lib2to3 directly. Why was this a
-# private function? Ugh.
-
-def detect_future_features(s):  # pragma: nocover
-    have_docstring = False
-    gen = tokenize_source_string(s)
-
-    def advance():
-        tok = next(gen)
-        return tok[0], tok[1]
-
-    ignore = frozenset((token.NEWLINE, tokenize.NL, token.COMMENT))
-    features = set()
-    try:
-        while True:
-            tp, value = advance()
-            if tp in ignore:
-                continue
-            elif tp == token.STRING:
-                if have_docstring:
-                    break
-                have_docstring = True
-            elif tp == token.NAME and value == 'from':
-                tp, value = advance()
-                if tp != token.NAME or value != '__future__':
-                    break
-                tp, value = advance()
-                if tp != token.NAME or value != 'import':
-                    break
-                tp, value = advance()
-                if tp == token.OP and value == '(':
-                    tp, value = advance()
-                while tp == token.NAME:
-                    features.add(value)
-                    tp, value = advance()
-                    if tp != token.OP or value != ',':
-                        break
-                    tp, value = advance()
-            else:
-                break
-    except StopIteration:
-        pass
-    return frozenset(features)
+def current_python_grammar():
+    grammar_name = 'py{0.major}{0.minor}'.format(sys.version_info)
+    return load_grammar(grammar_name)
 
 
-if six.PY3:  # ✘py27
-    def grammar_for_future_features(future_features):
-        return pygram.python_grammar_no_print_statement
-
-else:  # ✘py33 ✘py34 ✘py35
-    def grammar_for_future_features(future_features):
-        if 'print_function' in future_features:
-            return pygram.python_grammar_no_print_statement
-        else:
-            return pygram.python_grammar
+def fix_grammar_for_future_features(grammar, future_features):
+    if 'print_function' in future_features and 'print' in grammar.keywords:
+        del grammar.keywords['print']
 
 
-def find_comments(s, base_byte=0):
-    for typ, tok, interval in tokenize_source_string(s, base_byte=base_byte):
-        if typ == tokenize.COMMENT:
+def find_comments(grammar, source, base_byte=0):
+    source = six.text_type(source).rstrip(' \t\r\n\\')
+    for typ, tok, interval in tokenize_source_string(
+            grammar, source, base_byte=base_byte):
+        if typ == grammar.token.COMMENT:
             yield tok, interval
-
-
-def decode_string_using_source_encoding(b):
-    encoding = tokenize.detect_encoding(io.BytesIO(b).readline)[0]
-    return b.decode(encoding)
-
-
-def read_file_using_source_encoding(filename):
-    with open(filename, 'rb') as infile:
-        encoding = tokenize.detect_encoding(infile.readline)[0]
-    with io.open(filename, 'r', encoding=encoding) as infile_with_encoding:
-        return infile_with_encoding.read()
-
-
-def parse_source(driver, source):
-    trailing_newline = not source or source.endswith('\n')
-    # Thanks for this, lib2to3.
-    if not trailing_newline:
-        source += '\n'
-    return driver.parse_string(source), trailing_newline
 
 
 class Lines(object):
@@ -213,6 +146,7 @@ class EbbLint(object):
             return
 
         collected_checkers = []
+        _, grammar, _ = current_python_grammar()
 
         def register_checker(pattern, checker, extra):
             if ('python_minimum_version' in extra
@@ -221,12 +155,17 @@ class EbbLint(object):
             if ('python_disabled_version' in extra
                     and sys.version_info > extra['python_disabled_version']):
                 return
-            pattern = patcomp.compile_pattern(pattern)
-            collected_checkers.append((pattern, checker, extra))
+            pattern, tree = patcomp.compile_pattern(
+                grammar, pattern, with_tree=True)
+            collected_checkers.append((pattern, tree, checker, extra))
 
         scanner = venusian.Scanner(register=register_checker)
         scanner.scan(checkers)
+        matcher = BottomMatcher(grammar)
+        for e, (_, tree, _, _) in enumerate(collected_checkers):
+            matcher.add_pattern_by_key(tree, e)
         cls.collected_checkers = collected_checkers
+        cls.matcher = matcher
 
     @property
     def source(self):
@@ -236,7 +175,7 @@ class EbbLint(object):
             elif six.PY2:  # ✘py33 ✘py34 ✘py35
                 # On python 2, reading from stdin gives you bytes, which must
                 # be decoded.
-                self._source = decode_string_using_source_encoding(
+                self._source = decode_bytes_using_source_encoding(
                     pycodestyle.stdin_get_value())
             else:  # ✘py27
                 # On python 3, reading from stdin gives you text.
@@ -266,11 +205,10 @@ class EbbLint(object):
         return lineno, column, message, type(self)
 
     def run(self):
-        self.future_features = detect_future_features(self.source)
-        d = driver.Driver(
-            grammar_for_future_features(self.future_features),
-            convert=pytree.convert)
-        tree, trailing_newline = parse_source(d, self.source)
+        _, self._grammar, pysyms = current_python_grammar()
+        self.future_features = self._grammar.detect_future_features(self.source)
+        fix_grammar_for_future_features(self._grammar, self.future_features)
+        tree, trailing_newline = self._grammar.parse_source(self.source)
         if not trailing_newline:
             yield self._message_for_pos(
                 self.lines.last_pos, Errors.no_trailing_newline)
@@ -282,11 +220,19 @@ class EbbLint(object):
             yield error
 
     def _check_tree(self, tree):
+        matches = self.matcher.run(tree.pre_order())
+        node_matches = {}
+        for checker_idx, nodes in six.iteritems(matches):
+            for node in nodes:
+                node_matches.setdefault(id(node), set()).add(checker_idx)
+
         for node in tree.pre_order():
             for error in self._scan_node_for_ranges(node):
                 yield error
 
-            for pattern, checker, extra in self.collected_checkers:
+            for checker_idx in node_matches.get(id(node), ()):
+                pattern, _, checker, extra = (
+                    self.collected_checkers[checker_idx])
                 results = {}
                 if not pattern.match(node, results):
                     continue
@@ -295,15 +241,19 @@ class EbbLint(object):
                     # supposed to name a specific node, but it isn't used when
                     # choosing which node is added to results.
                     results[k + '_comments'] = [
-                        c for c, _ in find_comments(node.prefix)]
+                        c for c, _ in find_comments(self._grammar, node.prefix)]
                 if extra.get('pass_filename', False):
                     results['filename'] = self.filename
                 if extra.get('pass_future_features', False):
                     results['future_features'] = self.future_features
+                if extra.get('pass_grammar', False):
+                    results['grammar'] = self._grammar
                 for error_node, error, kw in checker(**results):
                     yield self._message_for_node(error_node, error, **kw)
 
     def _scan_node_for_ranges(self, node):
+        token = self._grammar.token
+
         if node.children or (node.type != token.STRING and not node.prefix):
             return
 
@@ -314,7 +264,7 @@ class EbbLint(object):
                 byte, byte + len(node.value)))
 
         comments = list(
-            find_comments(node.prefix, byte - len(node.prefix)))
+            find_comments(self._grammar, node.prefix, byte - len(node.prefix)))
         for c, i in comments:
             self._intervals['comments'].add(i)
             m = _pycodestyle_noqa(c)

@@ -4,8 +4,6 @@ from __future__ import unicode_literals
 
 import os
 
-from lib2to3.pgen2 import token
-
 from ebb_lint.checkers.registration import register_checker
 from ebb_lint.errors import Errors
 
@@ -24,7 +22,7 @@ def check_for_pdb(pdb):
 
 @register_checker("""
 
-power< any+ trailer< '.' func='set_trace' > trailer< '(' ')' > >
+atom_expr_or_power< any+ trailer< '.' func='set_trace' > trailer< '(' ')' > >
 
 """)
 def check_for_set_trace(func):
@@ -55,11 +53,15 @@ def scan_ancestry_for(node, attr, default):
 @register_checker("""
 
 ( simple_stmt< any* p='print' any* >
-| print_stmt< p='print' any* >
-| power< p='print' trailer< '(' any* ')' > any* >
+| atom_expr_or_power< p='print' trailer< '(' any* ')' > any* >
 )
 
 """)
+@register_checker("""
+
+print_stmt< p='print' any* >
+
+""", python_disabled_version=(3, 0))
 def check_for_print(p):
     if scan_ancestry_for(p, 'print_lint_ok', False):
         return
@@ -75,15 +77,16 @@ def check_for_print(p):
 )
 
     """,
-    pass_filename=True, pass_future_features=True,
+    pass_filename=True, pass_future_features=True, pass_grammar=True,
     python_disabled_version=(3, 0))
 def check_for_implicit_relative_imports(
-        filename, future_features, mod):  # ✘py33 ✘py34 ✘py35
+        filename, future_features, grammar, mod):  # ✘py33 ✘py34 ✘py35
     if 'absolute_import' in future_features:
         return
     [mod] = mod
     dirname = os.path.dirname(filename)
-    segments = [l.value for l in mod.pre_order() if l.type == token.NAME]
+    segments = [
+        l.value for l in mod.pre_order() if l.type == grammar.token.NAME]
     candidates = []
     candidates.extend(
         os.path.join(dirname,
@@ -148,10 +151,14 @@ def check_except_pass(p):
 | raise_stmt< stmt='raise' atom< lparen='(' any* ')' > >
 | assert_stmt< stmt='assert' atom< lparen='(' any* ')' > >
 | yield_expr< stmt='yield' atom< lparen='(' any* ')' > >
-| print_stmt< stmt='print' atom< lparen='(' any* ')' > >
 )
 
 """)
+@register_checker("""
+
+print_stmt< stmt='print' atom< lparen='(' any* ')' > >
+
+""", python_disabled_version=(3, 0))
 def check_useless_parens(stmt, lparen):
     if lparen.prefix:
         return
@@ -162,7 +169,7 @@ def check_useless_parens(stmt, lparen):
 
 yield_expr< stmt='yield' yield_arg< 'from' atom< lparen='(' any* ')' > > >
 
-""", python_minimum_version=(3, 4, 1))
+""", python_minimum_version=(3, 4))
 def check_useless_parens_on_yield_from(stmt, lparen):  # ✘py27 ✘py33
     if lparen.prefix:
         return
@@ -171,7 +178,9 @@ def check_useless_parens_on_yield_from(stmt, lparen):  # ✘py27 ✘py33
 
 @register_checker("""
 
-simple_stmt < power< f=('map' | 'filter') trailer< '(' any* ')' > any* > any* >
+simple_stmt < atom_expr_or_power<
+    f=('map' | 'filter') trailer< '(' any* ')' > any*
+> any* >
 
 """)
 def check_no_side_effects_function(f):
@@ -187,18 +196,29 @@ _expr_type = {
 
 @register_checker("""
 
-simple_stmt< ( atom< start='[' listmaker< any+ comp_for< any+ > > ']' >
-             | atom< start='{' dictsetmaker< any+ comp_for< any+ > > '}' >
-             ) any* >
+simple_stmt< atom< start='{' dictorsetmaker< any* comp_for< any* > any* > '}' >
+             any* >
 
 """)
+@register_checker("""
+
+simple_stmt< atom< start='[' listmaker< any* list_for< any* > any* > ']' >
+             any* >
+
+""", python_disabled_version=(3, 0))
+@register_checker("""
+
+simple_stmt< atom< start='[' testlist_comp any* ']' >
+             any* >
+
+""", python_minimum_version=(3, 0))
 def check_no_side_effects_literal(start):
     yield start, Errors.no_side_effects, {'thing': _expr_type[start.value]}
 
 
 @register_checker("""
 
-power< f=('map' | 'filter') trailer< '(' arglist<
+atom_expr_or_power< f=('map' | 'filter') trailer< '(' arglist<
     lambdef ',' any*
 > any* ')' > any* >
 
@@ -231,8 +251,8 @@ def parenthesized_group_leaves(container):
         raise NoParentheizedGroup()
     first_child = container.children[0]
     last_child = container.children[-1]
-    if not ((not first_child.children and first_child.value == '(')
-            and (not last_child.children and last_child.value == ')')):
+    if not ((not first_child.children and first_child.value == '(') and
+            (not last_child.children and last_child.value == ')')):
         raise NoParentheizedGroup()
     for child in container.children[1:-1]:
         for subchild in child.pre_order():
@@ -244,11 +264,12 @@ def parenthesized_group_leaves(container):
 
 atom=atom< first_string=STRING STRING+ >
 
-""")
-def check_for_unintentional_implicit_concatenation(atom, first_string):
+""", pass_grammar=True)
+def check_for_unintentional_implicit_concatenation(
+        grammar, atom, first_string):
     try:
         for child in parenthesized_group_leaves(atom.parent):
-            if child.type != token.STRING:  # pragma: nocover
+            if child.type != grammar.token.STRING:  # pragma: nocover
                 break
         else:
             # all leaves were string literals
