@@ -17,7 +17,7 @@ import six
 import venusian
 from intervaltree import Interval, IntervalTree
 
-from ebb_lint._version import __version__
+from ebb_lint._version import get_versions
 from ebb_lint.errors import Errors
 from ebb_lint import checkers
 
@@ -106,7 +106,7 @@ def byte_intersection(tree, lower, upper):
 
 class EbbLint(object):
     name = 'ebb_lint'
-    version = __version__
+    version = get_versions()['version']
 
     collected_checkers = None
     _source = None
