@@ -323,7 +323,13 @@ L303
   ``# noqa`` comments should be deleted to reduce pointless noise.
 
 
+Contributing
+============
+
+Please file issues on the issue tracker and follow our `code of conduct`_.
+
 .. _flake8: https://flake8.readthedocs.org/en/stable/
 .. _Napoleon: http://sphinx-doc.org/ext/napoleon.html
 .. _reStructuredText fields: http://docutils.sourceforge.net/docs/user/rst/quickref.html#field-lists
 .. _Implicit relative imports: https://www.python.org/dev/peps/pep-0328/#rationale-for-absolute-imports
+.. _code of conduct: https://pyga.github.io/
