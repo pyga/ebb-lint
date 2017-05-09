@@ -12,12 +12,14 @@ from awpa import (
     patcomp,
     read_file_using_source_encoding)
 
+import flake8_polyfill.options
+import flake8_polyfill.stdin
 import pycodestyle
 import six
 import venusian
 from intervaltree import Interval, IntervalTree
 
-from ebb_lint._version import __version__
+from ebb_lint._version import get_versions
 from ebb_lint.errors import Errors
 from ebb_lint import checkers
 
@@ -25,6 +27,8 @@ from ebb_lint import checkers
 _pycodestyle_noqa = pycodestyle.noqa
 # This is a blight. Disable it unconditionally.
 pycodestyle.noqa = lambda ign: False
+
+flake8_polyfill.stdin.monkey_patch('pycodestyle')
 
 
 def tokenize_source_string(grammar, s, base_byte=0):
@@ -106,7 +110,7 @@ def byte_intersection(tree, lower, upper):
 
 class EbbLint(object):
     name = 'ebb_lint'
-    version = __version__
+    version = get_versions()['version']
 
     collected_checkers = None
     _source = None
@@ -122,16 +126,16 @@ class EbbLint(object):
 
     @classmethod
     def add_options(cls, parser):
-        parser.add_option('--hard-max-line-length', default=119, type=int,
-                          metavar='n',
-                          help='absolute maximum line length allowed')
-        parser.config_options.append('hard-max-line-length')
-        parser.add_option('--permissive-bulkiness-percentage', default=67,
-                          type=int, metavar='p', help=(
-                              'integer percentage of a line which must be '
-                              'string literals or comments to be allowed to '
-                              'pass the soft line limit'))
-        parser.config_options.append('permissive-bulkiness-percentage')
+        flake8_polyfill.options.register(
+            parser, '--hard-max-line-length', default=119, type=int,
+            metavar='n', help='absolute maximum line length allowed',
+            parse_from_config=True)
+        flake8_polyfill.options.register(
+            parser, '--permissive-bulkiness-percentage', default=67, type=int,
+            metavar='p', help=(
+                'integer percentage of a line which must be string literals '
+                'or comments to be allowed to pass the soft line limit'),
+            parse_from_config=True)
 
     @classmethod
     def parse_options(cls, options):
@@ -172,12 +176,12 @@ class EbbLint(object):
         if self._source is None:
             if self.filename != 'stdin':
                 self._source = read_file_using_source_encoding(self.filename)
-            elif six.PY2:  # ✘py33 ✘py34 ✘py35
+            elif six.PY2:  # ✘py3
                 # On python 2, reading from stdin gives you bytes, which must
                 # be decoded.
                 self._source = decode_bytes_using_source_encoding(
                     pycodestyle.stdin_get_value())
-            else:  # ✘py27
+            else:  # ✘py2
                 # On python 3, reading from stdin gives you text.
                 self._source = pycodestyle.stdin_get_value()
         return self._source
@@ -206,7 +210,8 @@ class EbbLint(object):
 
     def run(self):
         _, self._grammar, pysyms = current_python_grammar()
-        self.future_features = self._grammar.detect_future_features(self.source)
+        self.future_features = self._grammar.detect_future_features(
+            self.source)
         fix_grammar_for_future_features(self._grammar, self.future_features)
         tree, trailing_newline = self._grammar.parse_source(self.source)
         if not trailing_newline:
@@ -231,7 +236,7 @@ class EbbLint(object):
                 yield error
 
             for checker_idx in node_matches.get(id(node), ()):
-                pattern, _, checker, extra = (
+                pattern, tree, checker, extra = (
                     self.collected_checkers[checker_idx])
                 results = {}
                 if not pattern.match(node, results):
@@ -241,7 +246,8 @@ class EbbLint(object):
                     # supposed to name a specific node, but it isn't used when
                     # choosing which node is added to results.
                     results[k + '_comments'] = [
-                        c for c, _ in find_comments(self._grammar, node.prefix)]
+                        c for c, i in find_comments(
+                            self._grammar, node.prefix)]
                 if extra.get('pass_filename', False):
                     results['filename'] = self.filename
                 if extra.get('pass_future_features', False):

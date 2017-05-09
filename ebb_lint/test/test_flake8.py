@@ -6,12 +6,26 @@ import functools
 import re
 import sys
 
+import flake8_polyfill.version
 import pycodestyle
 import pytest
 import six
-from flake8.engine import get_parser
 
 from ebb_lint.flake8 import EbbLint, Lines
+
+
+if flake8_polyfill.version.version_info < (3,):
+    from flake8.engine import get_parser
+
+else:
+    from flake8.main import options
+    from flake8.options import manager
+
+    def get_parser():
+        parser = manager.OptionManager(prog='ebb_lint_test', version='1')
+        options.register_default_options(parser)
+        EbbLint.add_options(parser)
+        return parser, None
 
 
 py2skip = pytest.mark.skipif(not six.PY3, reason='not runnable on python 2')

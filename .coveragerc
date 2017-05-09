@@ -9,5 +9,6 @@ directory = htmlcov-${TOX_ENVNAME}
 
 [report]
 exclude_lines =
-    ✘${TOX_ENVNAME}
+    ✘py${COVERAGE_MAJOR}
+    ✘py${COVERAGE_MAJORMINOR}
     pragma: no ?cover

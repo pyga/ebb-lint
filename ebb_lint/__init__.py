@@ -1,5 +1,12 @@
-from ebb_lint._version import __version__, __sha__
 from ebb_lint.flake8 import EbbLint
+from ebb_lint._version import get_versions
 
 
-__all__ = ['EbbLint', '__version__', '__sha__']
+__version__ = get_versions()['version']
+del get_versions
+
+
+__all__ = (
+    'EbbLint',
+    '__version__',
+)

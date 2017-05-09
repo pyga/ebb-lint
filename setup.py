@@ -1,5 +1,6 @@
 import os
 
+import versioneer
 from setuptools import setup
 
 
@@ -25,7 +26,8 @@ extras_require['all'] = list({
 
 install_requires = [
     'awpa >= 0.16.1.0',
-    'flake8 >= 2.6.0, < 3',
+    'flake8-polyfill',
+    'flake8 >= 2.6.0',
     'intervaltree',
     'six',
     'venusian',
@@ -38,9 +40,6 @@ with open('README.rst') as infile:
 
 setup(
     name='ebb-lint',
-    vcversioner={
-        'version_module_paths': ['ebb_lint/_version.py'],
-    },
     description='lint for ensuring quality software',
     long_description=long_description,
     author='Flowroute Inc.',
@@ -64,9 +63,10 @@ setup(
         'ebb_lint.checkers',
         'ebb_lint.test',
     ],
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     install_requires=install_requires,
     extras_require=extras_require,
-    setup_requires=['vcversioner'],
     entry_points={
         'flake8.extension': [
             'L = ebb_lint:EbbLint',
