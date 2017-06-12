@@ -10,8 +10,9 @@ import flake8_polyfill.version
 import pycodestyle
 import pytest
 import six
+from codifer import Source
 
-from ebb_lint.flake8 import EbbLint, Lines
+from ebb_lint.flake8 import EbbLint
 
 
 if flake8_polyfill.version.version_info < (3,):
@@ -56,10 +57,9 @@ def find_error_locations(source):
             match.start() - last_offset, match.group(1), new_offset))
         return ''
 
-    source = _code_pattern.sub(replacement, source)
-    lines = Lines(source.splitlines(True))
-    return source, [
-        lines.position_of_byte(b) + (code,) for b, code, _ in error_locations]
+    source = Source.from_text(_code_pattern.sub(replacement, source))
+    return source.text, [
+        source.lines.position_of_byte(b) + (code,) for b, code, _ in error_locations]
 
 
 @pytest.fixture(autouse=True)

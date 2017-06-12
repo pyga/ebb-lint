@@ -71,5 +71,8 @@ setup(
         'flake8.extension': [
             'L = ebb_lint:EbbLint',
         ],
+        'gather': [
+            '_ = ebb_lint:_',
+        ],
     },
 )

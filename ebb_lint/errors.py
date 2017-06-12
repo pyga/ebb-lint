@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 
-import collections
-
+import attr
 import enum
 
 
-Error = collections.namedtuple('Error', ['code', 'message'])
+@attr.s
+class Error(object):
+    code = attr.ib()
+    message = attr.ib()
 
 
 class Errors(enum.Enum):
@@ -81,3 +83,6 @@ class Errors(enum.Enum):
     no_noqa = Error(
         303,
         'noqa is ignored, so this comment is not useful')
+
+
+Errors._prefix = 'L'

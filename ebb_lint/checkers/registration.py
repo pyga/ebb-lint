@@ -1,10 +1,4 @@
-import venusian
+from codifer import make_collector
 
 
-def register_checker(pattern, **extra):
-    def deco(func):
-        def callback(scanner, name, obj):
-            scanner.register(pattern, obj, extra)
-        venusian.attach(func, callback)
-        return func
-    return deco
+_collector, register_checker = make_collector(__name__)
