@@ -12,7 +12,7 @@ del os.link
 extras_require = {
     'dev': [
         'coverage',
-        'pytest',
+        'pytest>=4<5',
         'pytest-cov',
     ],
     ':python_version < "3.4"': [
