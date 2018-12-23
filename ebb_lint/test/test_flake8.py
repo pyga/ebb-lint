@@ -1256,10 +1256,7 @@ def test_linting_with_filename(assert_lint, tmpdir, source, filename):
 @pytest.mark.parametrize('source', all_sources)
 def test_linting_with_default_filename(assert_lint, tmpdir, source):
     sourcefile = tmpdir.join('source.py')
-    try:
-        assert_lint(source, sourcefile)
-    except Exception as e:
-        raise
+    assert_lint(source, sourcefile)
 
 
 if six.PY2:
