@@ -12,7 +12,7 @@ del os.link
 extras_require = {
     'dev': [
         'coverage',
-        'pytest',
+        'pytest>=4<5',
         'pytest-cov',
     ],
     ':python_version < "3.4"': [
@@ -28,7 +28,7 @@ install_requires = [
     'awpa >= 0.16.1.0',
     'flake8-polyfill',
     'flake8 >= 2.6.0',
-    'intervaltree',
+    'intervaltree>=3.0.0',
     'six',
     'venusian',
 ]
