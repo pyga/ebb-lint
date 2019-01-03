@@ -44,7 +44,7 @@ setup(
     long_description=long_description,
     author='Flowroute Inc.',
     author_email='development@flowroute.com',
-    url='https://github.com/flowroute/ebb-lint',
+    url='https://github.com/pyga/ebb-lint',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Plugins',
