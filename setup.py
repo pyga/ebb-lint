@@ -42,8 +42,8 @@ setup(
     name='ebb-lint',
     description='lint for ensuring quality software',
     long_description=long_description,
-    author='Flowroute Inc.',
-    author_email='development@flowroute.com',
+    author='Python Grammar Authority',
+    author_email='mrw@enotuniq.org',
     url='https://github.com/pyga/ebb-lint',
     classifiers=[
         'Development Status :: 3 - Alpha',
