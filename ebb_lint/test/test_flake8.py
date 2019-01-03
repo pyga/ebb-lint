@@ -65,7 +65,7 @@ def find_error_locations(source):
 @pytest.fixture(autouse=True)
 def scan_for_checkers(request):
     parser, options_hooks = get_parser()
-    args_marker = request.node.get_marker('flake8_args')
+    args_marker = request.node.get_closest_marker('flake8_args')
     if args_marker is None:
         args = []
     else:
@@ -76,105 +76,106 @@ def scan_for_checkers(request):
 
 
 all_sources = [
-    '',
+    pytest.param(s) for s in [
+        '',
 
-    """
+        """
 
 def f():
     $L102$'''
     spam
     '''
 
-    """,
+        """,
 
-    """
+        """
 
 def f():
     $L102$'''spam'''
 
-    """,
+        """,
 
-    """
+        """
 
 def f():
     $L102$'spam'
 
-    """,
+        """,
 
-    """
+        """
 
 def f():
     $L102$"spam"
 
-    """,
+        """,
 
-    '''
+        '''
 
 def f():
     """$L102$ spam"""
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 def f():
     """spam$L102$ """
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 def __init__():
     $L101$"""
     spam
     """
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 class Spam(object):
     """
     It's spam.
     """
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 import $L203$pdb
 pdb.$L203$set_trace()
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 import $L203$pdb as not_pdb
 not_pdb.$L203$set_trace()
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 from $L203$pdb import set_trace
 set_trace()
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 import pudb
 pudb.$L203$set_trace()
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = $L204$'a' 'b'
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = [
     $L204$'a'
@@ -182,9 +183,9 @@ x = [
     'c',
 ]
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = [
     ($L204$'a'
@@ -192,9 +193,9 @@ x = [
     'c',
 ]
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = [
     ($L204$'a'
@@ -202,9 +203,9 @@ x = [
     'c',
 ]
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = [
     [$L204$'a'
@@ -212,9 +213,9 @@ x = [
     'c',
 ]
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = [
     ('a'
@@ -222,9 +223,9 @@ x = [
     'c',
 ]
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = [
     ('a'
@@ -232,24 +233,24 @@ x = [
     'c',
 ]
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 x = ('a' 'b')
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 from __future__ import print_function
 import sys
 
 $L202$print("Yay!", file=sys.stdout)
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 # I sincerely swear that this is one-off code.
 from __future__ import print_function
@@ -257,21 +258,21 @@ import sys
 
 print("Yay!", file=sys.stdout)
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 def f():
     pass$L301$''',
 
-    '''
+        '''
 
 # coding: utf-8
 x = '\ufffd' + $L204$'\ufffe' '\uffff'
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 def f():
     """
@@ -279,45 +280,45 @@ def f():
     """
     $L207$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 if True:
     pass
 else:
     $L207$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 for x in y:
     pass
 else:
     $L207$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 while True:
     pass
 else:
     $L207$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
 finally:
     $L207$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
@@ -325,27 +326,27 @@ except Whatever:
     do_something()
     $L207$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
 except:
     $L208$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
 except Whatever:
     pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
@@ -354,9 +355,9 @@ except Whatever:
 except:
     $L208$pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
@@ -365,9 +366,9 @@ except:
 except Whatever:
     pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 try:
     pass
@@ -378,64 +379,67 @@ else:
 finally:
     do_something_else()
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 class C(object):
     $L212$@staticmethod
     def f():
         pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 class C(object):
     @classmethod
     def f(cls):
         pass
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 class C(object):
     f = staticmethod(g)
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 spam  $L303$# noqa
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 spam  # eggs $L303$# noqa
 
-    ''',
+        ''',
 
-    '''
+        '''
 
 $L204$'a' 'b'  $L303$# noqa
 
-    ''',
+        ''',
 
-    '''
+        '''
 repr(
     foo for foo in range(3),
 )
-    ''',
+    ''']
+]
 
-    pre_py35skip('''
+all_sources.extend([
+    pytest.param('''
 def foo(one, two):
     pass
 
 foo(**{'one': 1}, two=2)
-    '''),
+    ''', marks=pre_py35skip)])
 
+all_sources.extend([
     # Oh boy these following two cases need explanation. The prefix of the
     # 'spam' node in both of these cases ends with a literal \ followed by a
     # newline, which cannot be tokenized by generate_tokens because it expects
@@ -444,22 +448,22 @@ foo(**{'one': 1}, two=2)
     # containing no comment, and the second case also includes a comment which
     # requires scanning.
 
-    '''
+    pytest.param('''
 
 x = \\
 'spam'
 
-    ''',
+    '''),
 
-    '''
+    pytest.param('''
 
 x = (
 $L303$# noqa
 \\
 'spam')
 
-    ''',
-]
+    '''),
+])
 
 
 line_length_test_mark_generator = functools.partial(
@@ -468,7 +472,7 @@ line_length_test_mark_generator = functools.partial(
 
 
 line_length_test_mark = line_length_test_mark_generator()
-all_sources.extend(line_length_test_mark(s) for s in [
+all_sources.extend(pytest.param(s, marks=line_length_test_mark) for s in [
     '''
 
 AbcdeAbcdeAbcde
@@ -543,12 +547,12 @@ AbcdeAbcdeAbcdeAbcdeAbcde$L302$fghijklmnopqrstuvwxyz
 ])
 
 
-def permissive_percentage_test_mark(p, s):
+def permissive_percentage_test_mark(p):
     return line_length_test_mark_generator(
-        '--permissive-bulkiness-percentage', str(p))(s)
+        '--permissive-bulkiness-percentage', str(p))
 
 
-all_sources.extend(permissive_percentage_test_mark(p, s) for p, s in [
+all_sources.extend(pytest.param(s, marks=permissive_percentage_test_mark(p)) for p, s in [
     (100, '''
 
 "AbcdeAbcdeAbcdeAbc"
@@ -601,7 +605,7 @@ A = 'bcdeAbcd'  # eA
 
 hard_limit_only_test_mark = pytest.mark.flake8_args(
     '--max-line-length', '15', '--hard-max-line-length', '15')
-all_sources.extend(hard_limit_only_test_mark(s) for s in [
+all_sources.extend(pytest.param(s, marks=hard_limit_only_test_mark) for s in [
     '''
 
 AbcdeAbcdeAbcde
@@ -659,25 +663,27 @@ contexts = [
 
 
 all_sources.extend(
-    py3skip('''
+    pytest.param('''
 {ctx[0]}
 {ctx[1]}{print_}
-    '''.format(ctx=ctx, print_=print_))
+    '''.format(ctx=ctx, print_=print_),
+        marks=py3skip)
     for ctx in contexts
     for print_ in [
         "print 'hi'",
         "print 'hi',",
         "print >> aether, 'hi'",
         "print",
-    ])
+    ]
+)
 
 
 all_sources.extend(
-    '''
+    pytest.param('''
 {ctx[0]}
 from __future__ import print_function
 {ctx[1]}{print_}
-    '''.format(ctx=ctx, print_=print_)
+    '''.format(ctx=ctx, print_=print_))
     for ctx in contexts
     for print_ in [
         "print('hi')",
@@ -699,7 +705,7 @@ delimiter_pairs = [
 
 
 all_sources.extend(
-    template.format(delim=delim, elem=elem)
+    pytest.param(template.format(delim=delim, elem=elem))
     for delim, _ in delimiter_pairs
     for elem in element_pairs
     for template in [
@@ -752,7 +758,7 @@ spam = {delim[0]}{elem[0]}{delim[1]}
 
 
 all_sources.extend(
-    template.format(delim=delim, elem=elem)
+    pytest.param(template.format(delim=delim, elem=elem))
     for delim, _ in delimiter_pairs
     for elem in element_pairs
     for template in [
@@ -793,7 +799,7 @@ a = {delim[0]}{elem[0]} for x in y{delim[1]}
 
 
 all_sources.extend(
-    template.format(delim=delim)
+    pytest.param(template.format(delim=delim))
     for delim, _ in delimiter_pairs
     for template in [
         '''
@@ -812,7 +818,7 @@ spam = {delim[0]}
 
 
 all_sources.extend(
-    template.format(delim=delim, expr=expr)
+    pytest.param(template.format(delim=delim, expr=expr))
     for delim, exprs in delimiter_pairs
     for expr in exprs
     for template in [
@@ -876,7 +882,7 @@ dict_element_pairs = [
 
 
 all_sources.extend(
-    template.format(elem=elem)
+    pytest.param(template.format(elem=elem))
     for elem in dict_element_pairs
     for template in [
         '''
@@ -909,7 +915,7 @@ no_paren_statements = ['del', 'assert', 'return', 'raise', 'yield']
 
 
 all_sources.extend(
-    template.format(stmt=stmt)
+    pytest.param(template.format(stmt=stmt))
     for stmt in no_paren_statements
     for template in [
         '''
@@ -926,20 +932,20 @@ $L209${stmt}(a)
     ])
 
 all_sources.extend([
-    '''
+    pytest.param('''
 
 a = $L209$yield(b)
 
-    ''',
+    '''),
 
-    '''
+    pytest.param('''
 
 a = yield (b)
 
-    ''',
+    '''),
 ])
 
-all_sources.extend(pre_py34skip(s) for s in [
+all_sources.extend(pytest.param(s, marks=pre_py34skip) for s in [
     '''
 
 a = $L209$yield from(b)
@@ -965,7 +971,7 @@ yield from (b)
     ''',
 ])
 
-all_sources.extend(py3skip(s) for s in [
+all_sources.extend(pytest.param(s, marks=py3skip) for s in [
     '''
 
 $L202$$L209$print(b)
@@ -981,7 +987,7 @@ $L202$print (b)
 
 
 all_sources.extend(
-    template.format(func=func)
+    pytest.param(template.format(func=func))
     for func in ['map', 'filter']
     for template in [
         '''
@@ -1102,20 +1108,20 @@ docstrings.extend("""
     """.format(field) for field in sphinx_fields)
 
 
-all_sources.extend('''
+all_sources.extend(pytest.param('''
 
 def f():
     """{}"""
 
-'''.format(docstring) for docstring in docstrings)
+'''.format(docstring)) for docstring in docstrings)
 
 
-all_sources.extend('''
+all_sources.extend(pytest.param('''
 
 def f():
     $L102$"""{}"""
 
-'''.format(docstring) for docstring in [
+'''.format(docstring)) for docstring in [
     """
 """,
 
@@ -1145,7 +1151,7 @@ test_docstrings = [
 
     """
     MY YELLING VOLUME IS FINE
-    """,
+    """
 ]
 
 
@@ -1157,37 +1163,39 @@ test_docstrings.extend("""
 ])
 
 
-all_sources.extend('''
+all_sources.extend(pytest.param('''
 
 def test_f():
     """{}"""
 
-'''.format(docstring) for docstring in test_docstrings)
+'''.format(docstring)) for docstring in test_docstrings)
 
 
 # Stock lib2to3 chokes on these, so make sure it's been patched.
 all_sources.extend([
-    py3skip('''
+    pytest.param('''
 
 class nonlocal(object):
     pass
 
-    '''),
+    ''',
+                 marks=py3skip()),
 
-    py2skip('''
+    pytest.param('''
 
 class exec(object):
     pass
 
-    '''),
+    ''',
+                 marks=py2skip()),
 
-    '''
+    pytest.param('''
 
 x = f(
     _ for _ in range(2),
 )
 
-    ''',
+    '''),
 ])
 
 
@@ -1217,7 +1225,7 @@ __all__ = ['eggs']
 
 
 all_filename_sources = [
-    ('__init__.py', source) for source in dunder_init_sources]
+    (pytest.param('__init__.py', source)) for source in dunder_init_sources]
 
 
 def assert_ebb_lint(source_text, source_path, error_locations):

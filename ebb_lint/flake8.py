@@ -103,7 +103,7 @@ class Lines(object):
 
 def byte_intersection(tree, lower, upper):
     ret = 0
-    for i in tree.search(lower, upper):
+    for i in tree.overlap(lower, upper):
         ret += min(i.end, upper) - max(i.begin, lower)
     return ret
 
