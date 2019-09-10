@@ -1,2 +1,3 @@
 include versioneer.py
 include ebb_lint/_version.py
+include LICENSE
